@@ -1,8 +1,8 @@
 require('dotenv').config();
 
+const sendAndWaitForResponse = require('./chatGPT');
 const { timeout } = require('puppeteer');
 const puppeteer = require('puppeteer');
-const chatGPT = require('./chatGPT');
 
 
 (async () => {
@@ -162,13 +162,9 @@ const chatGPT = require('./chatGPT');
                                                 }
                                             }
                                         }
-                                        function sleep(ms) {
-                                            return new Promise(resolve => setTimeout(resolve, ms));
-                                        }
-
-                                        await sleep(6000);
+                                      
                                         
-                                      //  let textAlternatives = aw
+                                      //  ideia abandona até o momento 27/08
                 //                      console.log('rodou')
                   //                    console.log('---------------');
                     //                  console.log(quest);
@@ -176,8 +172,9 @@ const chatGPT = require('./chatGPT');
                                       
                       //              await chatGPT(quest)
                         //            console.log('---------------');
+                                        console.log(sendAndWaitForResponse(quest))
                                     
-                                }
+                            }
                             
                         }
 

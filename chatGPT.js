@@ -1,28 +1,71 @@
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
+const targetContact = 'LuzIA'
 
-//
-//
-//
-const OpenAI = require("openai");
-const openai = new OpenAI({ apiKey: process.env.APIKEY }); // Use uma variável de ambiente para a chave
+const client = new Client({
+    authStrategy: new LocalAuth()
+});
 
-module.exports = async (quest) => {
-    try {
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                { role: "system", content: "Você é um professor e deve responder apenas a resposta certa e MAIS NADA" },
-                {
-                    role: "user",
-                    content: `Questão: ${quest}`,
-                },
-            ],
+let waitingForResponse = false;
+let responsePromise;
+let responseResolve;
+
+client.on('qr', (qr) => {
+    qrcode.generate(qr, { small: true });
+});
+
+client.on('ready', () => {
+    console.log('bot pronto');
+
+    // Exemplo de uso
+   const response = sendAndWaitForResponse('Qual é a capital da França?')
+        .then(response => {
+            console.log('Resposta recebida:', response);
+        })
+        .catch(error => {
+            console.error('Erro:', error);
         });
+        console.log(response)
+});
 
-        console.log(completion)
-        // Retorna apenas o texto da resposta
-        return completion.choices[0].message.content.trim(); 
-    } catch (error) {
-        console.error('Erro ao chamar a API do ChatGPT:', error);
-        throw error; // Opcional: propague o erro para tratamento posterior
+client.on('message', async (message) => {
+    if (waitingForResponse && message.fromMe === false) {
+        const chat = await client.getChatById(message.from);
+        if (chat.name === targetContact) {
+            responseResolve(message.body); // Resolve a Promise com a resposta
+            waitingForResponse = false; // Reset the state
+        }
     }
-};
+});
+
+module.exports = async function sendAndWaitForResponse(question) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            // Define o estado de espera
+            waitingForResponse = true;
+            responsePromise = new Promise(res => responseResolve = res);
+
+            // Envia a mensagem inicial para o contato
+            const chats = await client.getChats();
+            console.log(chats)
+            const targetChat = chats.find(c => c.name === targetContact);
+            console.log(targetChat)
+            if (targetChat) {
+                await client.sendMessage(targetChat.id._serialized, question);
+                console.log(`Mensagem enviada para ${targetContact}`);
+
+                // Aguarda a resposta
+                const response = await responsePromise;
+                resolve(response);
+            } else {
+                console.log(`Contato ${targetContact} não encontrado.`);
+                reject(new Error(`Contato ${targetContact} não encontrado.`));
+            }
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+client.initialize();
+

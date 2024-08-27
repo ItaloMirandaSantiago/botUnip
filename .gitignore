@@ -3,3 +3,7 @@ node_modules
 package-lock.json
 
 .env
+
+.wwebjs_auth
+
+.wwebjs_cache
